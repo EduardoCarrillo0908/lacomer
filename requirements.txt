@@ -1,0 +1,13 @@
+PyYAML==4.2b4
+flask
+pandas
+scikit-learn
+lightfm
+numpy
+pymongo[srv]
+dnspython
+certifi
+scipy
+numpy
+flask-cors
+gunicorn
