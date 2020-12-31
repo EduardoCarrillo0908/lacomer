@@ -52,11 +52,13 @@ class predict():
     
     @classmethod
     def user_knn(cls,usuario,store):
+        #Modelo = KNN(Vecinos cercanos)
         def distance(user1,user2):
             client1_matrix = matrix.transpose()[user1]
             client2_matrix = matrix.transpose()[user2]
             return hamming(client1_matrix,client2_matrix)
         transactions_2 = pd.read_csv("./modelos/knn_{}_3.csv".format(tiendas[store]))
+        secciones=[' ELECTRONICOS','  ELECTRODOMESTICOS','  DERMATOLOGICO ESPECIALIZADO','  PERFUMERIA, ACCESORIOS Y MUEBLES P/BEBE','  HOGAR','  GOURMET','  CARNES']
         client_per_sku = transactions_2.sku.value_counts()
         sku_per_client = transactions_2.client_id.value_counts()
         transactions_3 = transactions_2[transactions_2.sku.isin(client_per_sku[client_per_sku>30].index)]
@@ -73,7 +75,7 @@ class predict():
         NNRating = matrix[matrix.index.isin(KallUsers)]
         avgRating = NNRating.apply(np.nanmean).dropna().sort_values(ascending=False)
         items_ya = matrix.transpose()[usuario].dropna().index
-        a_recomendar = avgRating[~avgRating.index.isin(items_ya)].sort_values(ascending=False)[:10]
+        a_recomendar = avgRating[~avgRating.index.isin(items_ya)].sort_values(ascending=False)
         print(a_recomendar)
         a_recomendar_df = pd.DataFrame(a_recomendar).reset_index()
         a_recomendar_df.rename(columns={0:"AVG"}, inplace=True)
@@ -83,20 +85,25 @@ class predict():
         query = {'id': {"$in": skus}}
         df_products = list(colProds.find(query))
         products = pd.DataFrame(df_products)
-        products = products[['id','name','url','price']]
+        products = products[['id','name','url','price','section']]
         products = products.merge(a_recomendar_df[['sku','AVG']],left_on="id", right_on="sku", how="left")
         print(products.columns)
         products=products.sort_values(by="AVG", ascending=False)
-        products = products[['id','name','url','price']]
+        print(products.section.unique())
+        products=products[products.section.isin(secciones)].reset_index(drop=True)
+        products = products[['id','name','url','price']].head(10)
         dic = products.to_dict('records')
         print(dic)
         return dic
     
     @classmethod
     def user(cls,usuario,store):
+        #Modelo = Factorización de matrices
         tienda = tiendas[store]
         print(store)
         print(tienda)
+        #filtro="monto"
+        monto=300
         print("Recomendando por usuario")
         model = joblib.load('./modelos/model_store_{}.pkl'.format(tienda))
         products_features = sparse.load_npz("./modelos/products_features_{}.npz".format(tienda))
@@ -123,9 +130,11 @@ class predict():
         df_previous['scores'] = scores
         df_previous = df_previous[df_previous.department!="  FRUTAS Y VERDURAS"].reset_index(drop=True)
         df_previous = df_previous[df_previous.name!="POR CLASIFICAR"].reset_index(drop=True)
-        df_to_recommended = df_previous.sort_values(by='scores', ascending=False)[:10][['id','name','url','price']]
+        df_to_recommended = df_previous.sort_values(by='scores', ascending=False)[['id','name','url','price']]
+        print(df_to_recommended.dtypes)
+        print(df_to_recommended.shape)
+        df_to_recommended = df_to_recommended[df_to_recommended.price>monto].reset_index(drop=True).head(10)
         dic = df_to_recommended.to_dict('records')
-        
         return dic
 
     @classmethod

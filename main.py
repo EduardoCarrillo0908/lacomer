@@ -14,7 +14,7 @@ app.config['CORS_HEADERS'] = 'Content-Type'
 @app.route("/")
 def home():
     print("Hola mundo")
-    return "hola mundo"
+    return "hola mundo version 2"
 
 @app.route("/get_users_products", methods=['POST','GET'])
 def get_prods_users():
